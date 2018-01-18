@@ -6,31 +6,48 @@
 
 import React, { Component } from 'react';
 import {
-  Linking,
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableHighlight,
-  View,
-  TouchableOpacity
+    ActivityIndicator,
+    Linking,
+    Platform,
+    StyleSheet,
+    Text,
+    TouchableHighlight,
+    View,
+    TouchableOpacity
 } from 'react-native';
 import Camera from 'react-native-camera';
 import Video from 'react-native-video';
+import firebase from 'react-native-firebase';
+
 
 export default class App extends Component {
-  state = {
-    data: {path: null},
-    showCamera: false,
-    isRecording: false,
-    showPlayer: false,
-    seconds: 0,
-    intervalId: null,
-  }
+    state = {
+        data: {path: null},
+        showCamera: false,
+        isRecording: false,
+        showPlayer: false,
+        seconds: 0,
+        intervalId: null,
+        showIndicator: false
+    };
 
+    uploadVideo = () => {
+        this.setState({showIndicator: true});
+        /*Only for testing purposes you must to allow read and write rules for any user,
+            in contrary case you must implement firebase authentication*/
+        firebase.storage()
+            .ref('/videos/' + Math.floor((Math.random() * 1000) + 1))
+            .putFile(this.state.data.path)
+            .then(uploadFile => {
+                this.setState({showIndicator: false});
+                console.log(uploadFile);
+            }).catch(err => console.log(err))
+    };
 
   render() {
     return (
       <View style={styles.container}>
+          {this.state.showIndicator ? <ActivityIndicator size="large" /> : null}
         {this.state.showCamera ?
             <Camera 
               ref="camera"
@@ -58,25 +75,30 @@ export default class App extends Component {
               </TouchableOpacity>
               <Text>Video: {this.state.data.path}</Text>
               { this.state.data.path ?
-              <TouchableOpacity style={styles.viewButton} onPress={() => this.setState({showPlayer: true}, () => {
-                this.refs.video.presentFullscreenPlayer();
-              })}>
-                  <Text style={styles.viewButtonText}>View Video</Text>
-              </TouchableOpacity> : null
+              <View>
+                  <TouchableOpacity style={styles.viewButton} onPress={this.uploadVideo}>
+                      <Text style={styles.viewButtonText}>Upload Video</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.viewButton} onPress={() => this.setState({showPlayer: true}, () => {
+                    this.refs.video.presentFullscreenPlayer();
+                  })}>
+                      <Text style={styles.viewButtonText}>View Video</Text>
+                  </TouchableOpacity>
+              </View>: null
               }
               {
                 this.state.showPlayer ?
-                  <Video
-                    ref="video"
-                    source={{uri: this.state.data.path}}
-                    resizeMode="cover"
-                    repeat={false}
-                    rate={1.0}
-                    volume={1.0}
-                    onError={(error) => console.log(error)}
-                    onEnd={() => this.setState({showPlayer: false})}
-                    style={styles.backgroundVideo}
-                  /> : null
+                       <Video
+                        ref="video"
+                        source={{uri: this.state.data.path}}
+                        resizeMode="cover"
+                        repeat={false}
+                        rate={1.0}
+                        volume={1.0}
+                        onError={(error) => console.log(error)}
+                        onEnd={() => this.setState({showPlayer: false})}
+                        style={styles.backgroundVideo}
+                       />: null
               }
             </View>
         }
